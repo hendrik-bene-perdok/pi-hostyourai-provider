@@ -1,10 +1,17 @@
-# HostYourAI provider for Pi
+# HostYourAI voor Pi
 
-An unofficial community extension that adds HostYourAI as a Pi model provider, including interactive API-key login and live discovery of supported chat models. It is not affiliated with or endorsed by HostYourAI; HostYourAI names and marks belong to their respective owner.
+Een onofficiële Pi-extensie om beschikbare HostYourAI-chatmodellen te bekijken en te gebruiken. Niet verbonden aan of goedgekeurd door HostYourAI.
 
-## Install, update, and remove
+**Inhoud**
 
-Choose **one** source for the installation. Keep using that source when updating or removing it.
+- [Installeren, bijwerken en verwijderen](#installeren-bijwerken-en-verwijderen)
+- [Inloggen en een model kiezen](#inloggen-en-een-model-kiezen)
+- [Problemen melden](#problemen-melden)
+- [English](#hostyourai-for-pi)
+
+## Installeren, bijwerken en verwijderen
+
+Kies één manier. Gebruik later dezelfde manier om bij te werken of te verwijderen.
 
 ### npm
 
@@ -14,7 +21,52 @@ pi update npm:pi-hostyourai-provider
 pi remove npm:pi-hostyourai-provider
 ```
 
-To update all installed packages instead, use `pi update --extensions`.
+### GitHub
+
+```powershell
+pi install git:github.com/hendrik-bene-perdok/pi-hostyourai-provider
+pi update git:github.com/hendrik-bene-perdok/pi-hostyourai-provider
+pi remove git:github.com/hendrik-bene-perdok/pi-hostyourai-provider
+```
+
+De GitHub-versie bevat de nieuwste wijzigingen. De npm-versie kan ouder zijn.
+
+## Inloggen en een model kiezen
+
+Start Pi en voer deze opdrachten uit:
+
+```text
+/login hostyourai
+/model
+```
+
+## Problemen melden
+
+De extensie gebruikt de OpenAI Chat Completions-koppeling van Pi. Werking van chat, tools en afbeeldingen kan per model verschillen. Meld problemen of geef feedback via [GitHub Issues](https://github.com/hendrik-bene-perdok/pi-hostyourai-provider/issues).
+
+---
+
+# HostYourAI for Pi
+
+An unofficial Pi extension to find and use available HostYourAI chat models. It is not connected to or approved by HostYourAI.
+
+**Contents**
+
+- [Install, update, and remove](#install-update-and-remove)
+- [Sign in and choose a model](#sign-in-and-choose-a-model)
+- [Report a problem](#report-a-problem)
+
+## Install, update, and remove
+
+Choose one method. Use the same method later to update or remove the extension.
+
+### npm
+
+```powershell
+pi install npm:pi-hostyourai-provider
+pi update npm:pi-hostyourai-provider
+pi remove npm:pi-hostyourai-provider
+```
 
 ### GitHub
 
@@ -24,43 +76,17 @@ pi update git:github.com/hendrik-bene-perdok/pi-hostyourai-provider
 pi remove git:github.com/hendrik-bene-perdok/pi-hostyourai-provider
 ```
 
+The GitHub version has the latest changes. The npm version may be older.
+
 ## Sign in and choose a model
 
-Start Pi, then run:
+Start Pi and run:
 
 ```text
 /login hostyourai
+/model
 ```
 
-Enter your HostYourAI API key at the secret prompt. Pi stores it in `~/.pi/agent/auth.json`; alternatively, set `HOSTYOURAI_API_KEY` in the environment before starting Pi. Then run `/model` and select a HostYourAI model.
+## Report a problem
 
-To remove the stored credential, run `/logout` and select HostYourAI. Removing the extension package does not itself delete the saved credential.
-
-## Catalog and API behavior
-
-The extension fetches the live catalog from `GET https://hostyourai.com/api/v1/models`. It lists models marked available, serveable, and tool-capable whose modality is text-to-text or text-and-image-to-text. Embedding, audio, and models that do not advertise tool support are excluded. Image input is enabled only when the catalog advertises `supports_images: true`.
-
-Requests use Pi's built-in OpenAI Chat Completions adapter at `/chat/completions`. The model-list response is OpenAI-style; verify chat, tool-call, and image compatibility with your HostYourAI account and report problems.
-
-The extension caps catalog size at 5 MiB / 2,000 models, applies a 15-second catalog-fetch timeout, and bounds reported context/output limits before adding models to Pi.
-
-## Privacy and cost notes
-
-Model requests send the conversation, tool definitions, and any included images to HostYourAI. Review HostYourAI's data-handling terms before using the extension with sensitive information.
-
-HostYourAI prices are in EUR, while Pi displays model cost estimates with a dollar sign. The extension converts listed EUR prices using an approximate default of 1.10 USD per EUR. Set `HOSTYOURAI_EUR_TO_USD_RATE` to your preferred conversion rate (0.5–2) before starting Pi; restart Pi after changing it so the catalog is refreshed. This is only an estimate, not an invoice. Models without price data can appear as `$0` in Pi; that does **not** mean the model is free. HostYourAI's billing is authoritative.
-
-## Local development
-
-```powershell
-cd D:\hostyourai-pi-provider
-npm test
-npm pack --dry-run
-pi -e .
-```
-
-Then run `/login hostyourai` and `/model`. Running `npm test` requires Node.js 22.6 or newer and uses its built-in test runner.
-
-## Package details
-
-The npm package is `pi-hostyourai-provider` and is tagged with `pi-package`, making it eligible for the Pi package gallery. Gallery inclusion is not guaranteed. See the [GitHub repository](https://github.com/hendrik-bene-perdok/pi-hostyourai-provider) for source and release notes.
+The extension uses Pi's OpenAI Chat Completions API. Chat, tools, and images may work differently for each model. Report problems or share feedback in [GitHub Issues](https://github.com/hendrik-bene-perdok/pi-hostyourai-provider/issues).
