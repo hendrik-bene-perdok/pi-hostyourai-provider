@@ -5,87 +5,54 @@ import {
   type Provider,
 } from "@earendil-works/pi-ai";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import { getEurToUsdRate, mapHostYourAIModels } from "./catalog.ts";
 
 const PROVIDER_ID = "hostyourai";
 const BASE_URL = "https://hostyourai.com/api/v1";
-const DEFAULT_CONTEXT_WINDOW = 128_000;
-const DEFAULT_MAX_TOKENS = 8_192;
+const MAX_CATALOG_BYTES = 5 * 1024 * 1024;
+const CATALOG_TIMEOUT_MS = 15_000;
 
-type HostYourAIModel = {
-  id: string;
-  display_name?: string;
-  available?: boolean;
-  serveable?: boolean;
-  supports_tools?: boolean;
-  supports_images?: boolean;
-  modality?: string | null;
-  context_length?: number | null;
-  served_context_length?: number | null;
-  max_output_tokens?: number | null;
-  pricing?: {
-    input_per_million?: number | null;
-    cached_input_per_million?: number | null;
-    output_per_million?: number | null;
-  } | null;
-};
-
-type ModelsResponse = { data?: HostYourAIModel[] };
+type HostYourAIModelsResponse = { data: unknown[] };
 type HostYourAIModelInfo = Model<"openai-completions">;
 
-function positiveNumber(value: number | null | undefined, fallback: number): number {
-  return typeof value === "number" && Number.isFinite(value) && value > 0 ? value : fallback;
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function nonNegativeNumber(value: number | null | undefined): number {
-  return typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : 0;
-}
-
-function isUsableChatModel(model: HostYourAIModel): boolean {
-  if (
-    !model ||
-    typeof model.id !== "string" ||
-    model.id.trim().length === 0 ||
-    model.id.length > 256 ||
-    /[\u0000-\u001f]/.test(model.id)
-  ) {
-    return false;
+async function readBoundedJson(response: Response, signal: AbortSignal): Promise<unknown> {
+  const declaredLength = Number(response.headers.get("content-length"));
+  if (Number.isFinite(declaredLength) && declaredLength > MAX_CATALOG_BYTES) {
+    throw new Error("HostYourAI model catalog exceeds the 5 MiB size limit.");
   }
 
-  const modality = model.modality?.replace(/\s/g, "") ?? "";
-  return (
-    model.available === true &&
-    model.serveable === true &&
-    model.supports_tools === true &&
-    modality.startsWith("text") &&
-    modality.endsWith("->text")
-  );
-}
+  const reader = response.body?.getReader();
+  if (!reader) throw new Error("HostYourAI returned an empty model catalog response.");
 
-function toPiModel(model: HostYourAIModel): HostYourAIModelInfo {
-  const pricing = model.pricing;
-  const displayName = typeof model.display_name === "string" && model.display_name.trim()
-    ? model.display_name.trim().slice(0, 120)
-    : model.id;
+  const chunks: Uint8Array[] = [];
+  let totalBytes = 0;
+  try {
+    while (true) {
+      if (signal.aborted) throw new Error("HostYourAI model catalog request was aborted.");
+      const { done, value } = await reader.read();
+      if (done) break;
+      totalBytes += value.byteLength;
+      if (totalBytes > MAX_CATALOG_BYTES) {
+        await reader.cancel().catch(() => {});
+        throw new Error("HostYourAI model catalog exceeds the 5 MiB size limit.");
+      }
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
 
-  return {
-    id: model.id,
-    name: displayName,
-    api: "openai-completions",
-    provider: PROVIDER_ID,
-    reasoning: false,
-    input: model.supports_images ? ["text", "image"] : ["text"],
-    contextWindow: positiveNumber(
-      model.served_context_length ?? model.context_length,
-      DEFAULT_CONTEXT_WINDOW,
-    ),
-    maxTokens: positiveNumber(model.max_output_tokens, DEFAULT_MAX_TOKENS),
-    cost: {
-      input: nonNegativeNumber(pricing?.input_per_million),
-      output: nonNegativeNumber(pricing?.output_per_million),
-      cacheRead: nonNegativeNumber(pricing?.cached_input_per_million),
-      cacheWrite: 0,
-    },
-  };
+  const bytes = new Uint8Array(totalBytes);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes)) as unknown;
 }
 
 function createHostYourAIProvider(): Provider<"openai-completions"> {
@@ -119,20 +86,41 @@ function createHostYourAIProvider(): Provider<"openai-completions"> {
         : process.env.HOSTYOURAI_API_KEY;
       if (!apiKey) return;
 
-      const response = await fetch(`${BASE_URL}/models`, {
-        headers: { Authorization: `Bearer ${apiKey}` },
-        signal: context.signal,
-      });
+      const timeoutSignal = AbortSignal.timeout(CATALOG_TIMEOUT_MS);
+      const requestSignal = AbortSignal.any([context.signal, timeoutSignal]);
+      let response: Response;
+      try {
+        response = await fetch(`${BASE_URL}/models`, {
+          headers: { Authorization: `Bearer ${apiKey}` },
+          signal: requestSignal,
+          redirect: "error",
+        });
+      } catch (error) {
+        if (context.signal.aborted) return;
+        if (timeoutSignal.aborted) {
+          throw new Error("HostYourAI model catalog request timed out after 15 seconds.");
+        }
+        throw error;
+      }
       if (!response.ok) {
         throw new Error(`HostYourAI model catalog request failed (HTTP ${response.status}).`);
       }
 
-      const catalog = (await response.json()) as ModelsResponse;
-      if (!Array.isArray(catalog.data)) {
+      let payload: unknown;
+      try {
+        payload = await readBoundedJson(response, requestSignal);
+      } catch (error) {
+        if (context.signal.aborted) return;
+        if (timeoutSignal.aborted) {
+          throw new Error("HostYourAI model catalog response timed out after 15 seconds.");
+        }
+        throw error;
+      }
+      if (!isRecord(payload) || !Array.isArray(payload.data)) {
         throw new Error("HostYourAI returned an unexpected model catalog format.");
       }
 
-      const refreshed = catalog.data.filter(isUsableChatModel).map(toPiModel);
+      const refreshed = mapHostYourAIModels(payload.data, getEurToUsdRate());
       await context.publish({
         persist: { models: refreshed, checkedAt: Date.now() },
         update: () => { models = refreshed; },
