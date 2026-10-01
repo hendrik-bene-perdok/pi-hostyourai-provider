@@ -29,7 +29,7 @@ pi update git:github.com/hendrik-bene-perdok/pi-hostyourai-provider
 pi remove git:github.com/hendrik-bene-perdok/pi-hostyourai-provider
 ```
 
-De GitHub-versie bevat de nieuwste wijzigingen. De npm-versie kan ouder zijn.
+GitHub installeert de broncode uit `main`. npm installeert de laatst gepubliceerde versie.
 
 ## Inloggen en een model kiezen
 
@@ -76,7 +76,7 @@ pi update git:github.com/hendrik-bene-perdok/pi-hostyourai-provider
 pi remove git:github.com/hendrik-bene-perdok/pi-hostyourai-provider
 ```
 
-The GitHub version has the latest changes. The npm version may be older.
+GitHub installs the source from `main`. npm installs the latest published release.
 
 ## Sign in and choose a model
 
