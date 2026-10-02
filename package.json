@@ -1,0 +1,23 @@
+{
+  "name": "pi-hostyourai-provider",
+  "version": "1.0.0",
+  "description": "Unofficial HostYourAI provider extension for Pi with live model discovery",
+  "type": "module",
+  "files": ["extensions/", "README.md", "CHANGELOG.md", "LICENSE"],
+  "scripts": {
+    "test": "node --experimental-strip-types --test tests/catalog.test.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hendrik-bene-perdok/pi-hostyourai-provider.git"
+  },
+  "license": "MIT",
+  "keywords": ["pi-package"],
+  "pi": {
+    "extensions": ["./extensions/hostyourai.ts"]
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*",
+    "@earendil-works/pi-ai": "*"
+  }
+}
