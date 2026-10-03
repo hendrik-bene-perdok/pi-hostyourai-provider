@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.2 — 2026-10-03
+
+- Fall back to safe defaults for fractional model limits that would otherwise become zero.
+- Add regression coverage for fractional catalog limits.
+
 ## 1.0.1 — 2026-10-02
 
 - Enriched package metadata with author, homepage, and issue tracker links.
