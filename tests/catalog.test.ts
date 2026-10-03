@@ -89,6 +89,15 @@ test("bounds context/output limits and handles missing or invalid prices safely"
   assert.equal(unknownPrice.cost.output, 0);
 });
 
+test("uses safe defaults when positive limits floor to zero", () => {
+  const [mapped] = mapHostYourAIModels([
+    model({ context_length: 0.5, served_context_length: 0.5, max_output_tokens: 0.5 }),
+  ]);
+
+  assert.equal(mapped.contextWindow, 128_000);
+  assert.equal(mapped.maxTokens, 8_192);
+});
+
 test("validates the configurable EUR-to-USD estimate rate", () => {
   assert.equal(getEurToUsdRate("1.25"), 1.25);
   assert.equal(getEurToUsdRate(""), 1.1);

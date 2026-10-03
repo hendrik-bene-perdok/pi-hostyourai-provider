@@ -12,7 +12,6 @@ const BASE_URL = "https://hostyourai.com/api/v1";
 const MAX_CATALOG_BYTES = 5 * 1024 * 1024;
 const CATALOG_TIMEOUT_MS = 15_000;
 
-type HostYourAIModelsResponse = { data: unknown[] };
 type HostYourAIModelInfo = Model<"openai-completions">;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
