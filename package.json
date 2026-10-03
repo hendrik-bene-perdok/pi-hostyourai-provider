@@ -1,6 +1,6 @@
 {
   "name": "pi-hostyourai-provider",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Unofficial HostYourAI provider extension for Pi with live model discovery",
   "type": "module",
   "author": "Hendrik-Bene Perdok <28087812+hendrik-bene-perdok@users.noreply.github.com>",
