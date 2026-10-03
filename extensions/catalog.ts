@@ -54,7 +54,8 @@ function isUsableChatModel(value: unknown): value is HostYourAIModel {
 
 function positiveInteger(value: unknown, fallback: number, maximum: number): number {
   if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) return fallback;
-  return Math.min(Math.floor(value), maximum);
+  const integer = Math.floor(value);
+  return integer < 1 ? fallback : Math.min(integer, maximum);
 }
 
 function nonNegativePrice(value: unknown): number {
